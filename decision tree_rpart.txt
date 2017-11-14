@@ -1,0 +1,164 @@
+#Car Evaluation Problem Statement:
+#To model a classifier for evaluating the acceptability of car using its given features.
+
+#dataset description
+1	buying								vhigh, high, med, low
+2	maint								vhigh, high, med,low
+3	doors								2, 3, 4, 5 , more
+4	persons								2, 4, more
+5	lug_boot							small, med, big.
+6	safety								low, med, high
+7	Car Evaluation –  Target Variable	 unacc, acc, good, vgood
+
+install.packages("caret")
+install.packages("rpart.plot")
+library(caret)
+library(rpart.plot)
+
+#DataImport
+#You can get the path of your current working directory by running getwd() command in R console. If you wish to change your working directory then the setwd(<PATH of  New Working Directory>) can complete our task.
+data_url <- c("https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data")
+download.file(url = data_url, destfile = "car.data")
+car_df <- read.csv("car.data", sep = ',', header = FALSE)
+str(car_df)
+
+#Data Slicing
+set.seed(3000)
+intrain <- createDataPartition(y = car_df$V7, p= 0.7, list = FALSE)	
+#The caret package provides a method createDataPartition() for partitioning our data into train and test set. We are passing 3 parameters. The “y” parameter takes the value of variable according to which data needs to be partitioned. In our case, target variable is at V7, so we are passing car_df$V7 (heart data frame’s V7 column).
+#The “p” parameter holds a decimal value in the range of 0-1. It’s to show that percentage of the split. We are using p=0.7. It means that data split should be done in 70:30 ratio. The “list” parameter is for whether to return a list or matrix. We are passing FALSE for not returning a list. The createDataPartition() method is returning a matrix “intrain” with record’s indices.
+training <- car_df[intrain,]
+testing <- car_df[-intrain,]
+#check dimensions of train & test set
+dim(training); 
+dim(testing);
+
+#Preprocessing & Training
+#To check whether our data contains missing values or not
+anyNA(car_df)
+#[1] FALSE
+
+#Dataset summarized details
+summary(car_df)
+# V1 V2 V3 V4 V5 V6 V7 
+# high :432 high :432 2 :432 2 :576 big :576 high:576 acc : 384 
+# low :432 low :432 3 :432 4 :576 med :576 low :576 good : 69 
+# med :432 med :432 4 :432 more:576 small:576 med :576 unacc:1210 
+# vhigh:432 vhigh:432 5more:432
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)	#repeatedcv:repeated cross validation
+#We can set “method” with many values like  “boot”, “boot632”, “cv”, “repeatedcv”, “LOOCV”, “LGOCV” etc.
+
+#Training the Decision Tree classifier with criterion as information gain
+set.seed(3333)
+dtree_fit <- train(V7 ~., data = training, method = "rpart",
+                   parms = list(split = "information"),
+                   trControl=trctrl,
+                   tuneLength = 10);
+#We are setting 3 parameters of trainControl() method. The “method” parameter holds the details about resampling method. We can set “method” with many values like  “boot”, “boot632”, “cv”, “repeatedcv”, “LOOCV”, “LGOCV” etc.
+#The “number” parameter holds the number of resampling iterations. The “repeats ” parameter contains the complete sets of folds to compute for our repeated cross-validation. We are using setting number =10 and repeats =3. This trainControl() methods returns a list. We are going to pass this on our train() method.
+#To select the specific strategy, we need to pass a parameter “parms” in our train() method. It should contain a list of parameters for our rpart method. For splitting criterions, we need to add a “split” parameter with values either “information” for information gain & “gini” for gini index. In the above snippet, we are using information gain as a criterion.
+
+
+#Trained Decision Tree classifier results
+dtree_fit
+
+#
+CART 
+
+1211 samples
+   6 predictor
+   4 classes: 'acc', 'good', 'unacc', 'vgood' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 3 times) 
+Summary of sample sizes: 1091, 1090, 1091, 1089, 1089, 1089, ... 
+Resampling results across tuning parameters:
+
+  cp           Accuracy   Kappa    
+  0.005494505  0.8728266  0.7263441
+  0.010302198  0.8645755  0.7053346
+  0.010439560  0.8645755  0.7053346
+  0.010989011  0.8573992  0.6891157
+  0.012087912  0.8549152  0.6843113
+  0.017857143  0.8279465  0.6212057
+  0.021978022  0.8191580  0.6030590
+  0.024725275  0.8125188  0.5902824
+  0.046703297  0.7940651  0.5649263
+  0.076923077  0.7338907  0.2829312
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was cp = 0.005494505.
+#
+plot(dtree_fit)
+
+#Training the Decision Tree classifier with criterion as gini index
+set.seed(3333)
+dtree_fit_gini <- train(V7 ~., data = training, method = "rpart",parms = list(split = "gini"),trControl=trctrl,tuneLength = 10)
+dtree_fit_gini
+#
+CART 
+
+1211 samples
+   6 predictor
+   4 classes: 'acc', 'good', 'unacc', 'vgood' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 3 times) 
+Summary of sample sizes: 1091, 1090, 1091, 1089, 1089, 1089, ... 
+Resampling results across tuning parameters:
+
+  cp           Accuracy   Kappa    
+  0.005494505  0.8777653  0.7397918
+  0.010302198  0.8650882  0.7072668
+  0.010439560  0.8628978  0.7027930
+  0.010989011  0.8593097  0.6951444
+  0.012087912  0.8571035  0.6905531
+  0.017857143  0.8351093  0.6409784
+  0.021978022  0.8139348  0.5945884
+  0.024725275  0.8111935  0.5851663
+  0.046703297  0.7971114  0.5675084
+  0.076923077  0.7338907  0.2829312
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was cp = 0.005494505.
+#
+
+#Plot Decision Tree
+prp(dtree_fit_gini$finalModel, box.palette = "Blues", tweak = 1.3)
+
+#Prediction
+test_pred_gini <- predict(dtree_fit_gini, newdata = testing)
+confusionMatrix(test_pred_gini, testing$V7 )  #check accuracy
+#
+Confusion Matrix and Statistics
+
+          Reference
+Prediction acc good unacc vgood
+     acc    75    3    13     2
+     good   13   14     0     6
+     unacc  24    2   350     0
+     vgood   3    1     0    11
+
+Overall Statistics
+                                          
+               Accuracy : 0.8704          
+                 95% CI : (0.8384, 0.8981)
+    No Information Rate : 0.7021          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.7093          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: acc Class: good Class: unacc Class: vgood
+Sensitivity              0.6522     0.70000       0.9642      0.57895
+Specificity              0.9552     0.96177       0.8312      0.99197
+Pos Pred Value           0.8065     0.42424       0.9309      0.73333
+Neg Pred Value           0.9057     0.98760       0.9078      0.98406
+Prevalence               0.2224     0.03868       0.7021      0.03675
+Detection Rate           0.1451     0.02708       0.6770      0.02128
+Detection Prevalence     0.1799     0.06383       0.7273      0.02901
+Balanced Accuracy        0.8037     0.83089       0.8977      0.78546
+#

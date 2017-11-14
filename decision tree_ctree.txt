@@ -1,0 +1,35 @@
+install.packages("party")
+install.packages("caret")
+library(party)
+library(caret)
+
+data_url <- c("https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data")
+download.file(url = data_url, destfile = "car.data")
+car_df <- read.csv("car.data", sep = ',', header = FALSE)
+str(car_df)
+dim(car_df)
+summary(car_df)
+set.seed(3000)
+intrain <- createDataPartition(y = car_df$V7, p= 0.7, list = FALSE)	
+training <- car_df[intrain,]
+testing <- car_df[-intrain,]
+dim(training); 
+dim(testing);
+anyNA(car_df)
+summary(car_df)
+
+trctrl<-ctree_control(teststat = c("quad", "max"),testtype = c("Teststatistic"))
+set.seed(12345)
+ctree_fit<- ctree(V7~., data = training, control=trctrl)
+ctree_fit
+plot(ctree_fit)
+
+set.seed(54321)
+pred <- predict(ctree_fit, newdata=testing)
+library(caret)
+confusionMatrix(pred, testing$V7)
+
+
+
+
+ctree_fit<- train(V7~., data = training, method='ctree', tuneLength=10,trControl=trainControl(method='repeatedcv', number=10, classProbs=TRUE))
